@@ -1,18 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 
-const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl.replace(/\/$/, '');
-
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://127.0.0.1:8000';
-  }
-
-  return 'https://your-backend.onrender.com';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://backendmenenfrontend-1.onrender.com')
+  .replace(/\/$/, '');
 
 function App() {
   const [authMode, setAuthMode] = useState(null);
