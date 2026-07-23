@@ -1,83 +1,144 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 
-function App() {
-  // Эгер null болсо — сайт ачылат, 'login' же 'register' болсо — форма ачылат
-  const [authMode, setAuthMode] = useState(null); 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState('');
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl.replace(/\/$/, '');
 
-  // Формадагы талаалар
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://127.0.0.1:8000';
+  }
+
+  return 'https://your-backend.onrender.com';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+function App() {
+  const [authMode, setAuthMode] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(localStorage.getItem('authToken'));
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('currentUser') || '';
+  });
+
   const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // КАТТОО ФУНКЦИЯСЫ
+  const persistAuth = (token, user) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('currentUser', user);
+  };
+
+  const clearAuth = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+  };
+
+  const showError = (text) => {
+    setMessage({ text, type: 'error' });
+    if (typeof window !== 'undefined') {
+      window.alert(text);
+    }
+  };
+
+  const parseErrorMessage = async (res, fallback) => {
+    const text = await res.text();
+    if (!text) return fallback;
+
+    try {
+      const data = JSON.parse(text);
+      if (typeof data?.detail === 'string') return data.detail;
+      if (typeof data?.detail?.message === 'string') return data.detail.message;
+      if (typeof data?.detail?.errors?.length) {
+        return data.detail.errors.join('\n');
+      }
+      if (typeof data?.message === 'string') return data.message;
+      return fallback;
+    } catch {
+      return text || fallback;
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setMessage({ text: '', type: '' });
 
     if (password !== confirmPassword) {
-      setMessage({ text: 'Паролдор бири-бирине дал келбейт!', type: 'error' });
+      showError('Паролдор бири-бирине дал келбейт!');
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/register', {
+      const res = await fetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, password })
+        body: JSON.stringify({ email: identity, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (res.ok) {
-        setMessage({ text: data.message, type: 'success' });
-        setTimeout(() => {
-          setIsLoggedIn(true);
-          setCurrentUser(identity);
-          setAuthMode(null); // Модальдык терезени жабуу
-        }, 1200);
+        const token = data?.token || 'session';
+        persistAuth(token, identity);
+        setCurrentUser(identity);
+        setIsLoggedIn(true);
+        setMessage({ text: data?.message || 'Каттоо ийгиликтүү аяктады!', type: 'success' });
+        setTimeout(() => setAuthMode(null), 1000);
       } else {
-        setMessage({ text: data.detail?.message || 'Ката чыкты', type: 'error' });
+        const messageText = await parseErrorMessage(res, 'Ката чыкты');
+        showError(messageText);
       }
-    } catch (err) {
-      setMessage({ text: 'Python серверине туташуу мүмкүн болгон жок.', type: 'error' });
+    } catch {
+      showError('Backendке туташуу мүмкүн эмес. URLди текшерип, сервер иштеп турганын текшериңиз.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // КИРҮҮ ФУНКЦИЯСЫ
   const handleLogin = async (e) => {
     e.preventDefault();
     setMessage({ text: '', type: '' });
 
+    setIsSubmitting(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/login', {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity, password })
+        body: JSON.stringify({ email: identity, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (res.ok) {
-        setMessage({ text: data.message, type: 'success' });
-        setTimeout(() => {
-          setIsLoggedIn(true);
-          setCurrentUser(identity);
-          setAuthMode(null); // Модальдык терезени жабуу
-        }, 1000);
+        const token = data?.token || 'session';
+        persistAuth(token, identity);
+        setCurrentUser(identity);
+        setIsLoggedIn(true);
+        setMessage({ text: data?.message || 'Куш келиңиз!', type: 'success' });
+        setTimeout(() => setAuthMode(null), 1000);
       } else {
-        setMessage({ text: data.detail?.message || 'Gmail же пароль ката!', type: 'error' });
+        const messageText = await parseErrorMessage(res, 'Gmail же пароль ката!');
+        showError(messageText);
       }
-    } catch (err) {
-      setMessage({ text: 'Python серверине туташуу мүмкүн болгон жок.', type: 'error' });
+    } catch {
+      showError('Backendке туташуу мүмкүн эмес. URLди текшерип, сервер иштеп турганын текшериңиз.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // ЧЫГУУ ФУНКЦИЯСЫ
   const handleLogout = () => {
+    clearAuth();
     setIsLoggedIn(false);
     setCurrentUser('');
   };
