@@ -4,7 +4,7 @@ services:
     name: signup-backend
     env: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install --force-reinstall -r requirements.txt
     startCommand: python -m uvicorn main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: JWT_SECRET
