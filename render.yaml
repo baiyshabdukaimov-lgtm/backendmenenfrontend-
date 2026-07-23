@@ -1,13 +1,13 @@
 services:
-  # Backend — FastAPI
+  # Backend — Django
   - type: web
     name: signup-backend
     env: python
     rootDir: backend
-    buildCommand: pip install --upgrade pip && pip install --force-reinstall -r requirements.txt
-    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port 10000
+    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:10000
     envVars:
-      - key: JWT_SECRET
+      - key: DJANGO_SECRET_KEY
         generateValue: true
 
   # Frontend — React (Vite static build)

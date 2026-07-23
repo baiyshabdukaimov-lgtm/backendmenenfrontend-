@@ -1,5 +1,4 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-bcrypt
-pyjwt
+django
+djangorestframework
+django-cors-headers
+gunicorn
