@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from .serializers import AuthSerializer
 
 
-@api_view(["POST"])
+@api_view(["POST", "OPTIONS"])
 def register_view(request):
     serializer = AuthSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -31,7 +31,7 @@ def register_view(request):
     })
 
 
-@api_view(["POST"])
+@api_view(["POST", "OPTIONS"])
 def login_view(request):
     serializer = AuthSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
