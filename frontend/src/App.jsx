@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://backendmenenfrontend-1.onrender.com')
-  .replace(/\/$/, '');
+  .trim()
+  .replace(/\/+$/, '');
 
 function App() {
   const [authMode, setAuthMode] = useState(null);
@@ -69,7 +70,7 @@ function App() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/register`, {
+      const res = await fetch(`${API_BASE_URL}/api/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identity, password }),
@@ -101,7 +102,7 @@ function App() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identity, password }),
